@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Silo Temperature Tables</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f8fb;
+      margin: 20px;
+      color: #1E3C64;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .top-controls {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    h2 {
+      margin-top: 30px;
+      color: #8C003C;
+    }
+    .grid {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    table {
+      border-collapse: collapse;
+      background: white;
+      width: 100%;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      overflow: hidden;
+      text-align: center;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+    }
+    th {
+      background: #1E3C64;
+      color: white;
+      font-weight: bold;
+    }
+    .sensor-label {
+      background: #8C003C;
+      color: white;
+      font-weight: bold;
+    }
+    button {
+      background: #1E3C64;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    button:hover {
+      background: #8C003C;
+    }
+  </style>
+</head>
+<body>
+  <h1>Silo Temperature Monitor</h1>
+  <div class="top-controls">
+    <button id="refreshAll">Fetch Latest Data</button>
+  </div>
+  <div id="tables" class="grid"></div>
+
+<script>
+  const siloGroups = [
+    { name: 'Old Silo Group 1', cables: 17, sensors: 8 },
+    { name: 'Old Silo Group 2', cables: 17, sensors: 8 },
+    { name: 'Old Silo Group 3', cables: 17, sensors: 8 },
+    { name: 'Old Silo Group 4', cables: 17, sensors: 8 },
+    { name: 'Old Silo Group 5', cables: 17, sensors: 8 },
+    { name: 'New Silo Group 1', cables: 28, sensors: 8 },
+    { name: 'New Silo Group 2', cables: 28, sensors: 8 },
+    { name: 'New Silo Group 3', cables: 28, sensors: 8 },
+    { name: 'New Silo Group 4', cables: 28, sensors: 8 },
+    { name: 'New Silo Group 5', cables: 28, sensors: 8 }
+  ];
+
+  const API_URL = 'http://localhost:5000/api/all_sensors';
+  const container = document.getElementById('tables');
+  const tables = []; // to store table bodies for later update
+
+  // Build static table layout once
+  siloGroups.forEach(({ name, cables, sensors }) => {
+    const wrapper = document.createElement('div');
+    const title = document.createElement('h2');
+    title.textContent = name;
+    wrapper.appendChild(title);
+
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    headRow.innerHTML = `<th>Silo / Cable</th>` +
+      Array.from({ length: cables }, (_, i) => `<th>C${i+1}</th>`).join('');
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    container.appendChild(wrapper);
+
+    tables.push({ tbody, cables, sensors });
+  });
+
+  async function loadAllData() {
+    let readings = [];
+    try {
+      const res = await fetch(API_URL);
+      readings = await res.json();  // expect array of 1800 values
+    } catch {
+      readings = Array(1800).fill('-');
+    }
+
+    let offset = 0;
+
+    // Fill every group in order
+    tables.forEach(({ tbody, cables, sensors }) => {
+      const totalSensors = cables * sensors;
+      const groupData = readings.slice(offset, offset + totalSensors);
+      offset += totalSensors;
+      tbody.innerHTML = '';
+
+      for (let s = sensors; s > 0; s--) {
+        const tr = document.createElement('tr');
+        const rowLabel = `<td class="sensor-label">S${s}</td>`;
+        const cells = Array.from({ length: cables }, (_, c) => {
+          const id = (c * sensors) + (s - 1);
+          const val = groupData[id] ?? '-';
+          return `<td>${val}</td>`;
+        }).join('');
+        tr.innerHTML = rowLabel + cells;
+        tbody.appendChild(tr);
+      }
+    });
+  }
+
+  document.getElementById('refreshAll').addEventListener('click', loadAllData);
+
+  // Optionally auto-load on page start
+  loadAllData();
+</script>
+</body>
+</html>
