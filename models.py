@@ -5,6 +5,7 @@ from sqlalchemy import text, Index, ForeignKey
 from sqlalchemy.dialects.mysql import BIGINT, INTEGER, DATETIME as MYSQL_DATETIME, DECIMAL as MYSQL_DECIMAL
 from sqlalchemy.dialects.mysql import BIGINT as MyBigInt
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy import String
 
 db = SQLAlchemy()
 
@@ -98,7 +99,7 @@ class ReadingRaw(db.Model):
 
     id          = db.Column(BIGINT(unsigned=False), primary_key=True)
     sensor_id   = db.Column(INTEGER, db.ForeignKey('sensors.id'), nullable=False)
-    value_c     = db.Column(MYSQL_DECIMAL(6, 2), nullable=True)
+    value_c     = db.Column(String(10), nullable=True)
     polled_at   = db.Column(MYSQL_DATETIME(fsp=6), nullable=False)    # DATETIME(6)
     poll_run_id = db.Column(BIGINT(unsigned=False), nullable=True)    # no FK if table unknown
 
